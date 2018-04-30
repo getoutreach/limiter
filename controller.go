@@ -19,10 +19,11 @@ import (
 )
 
 const (
-	LimitRangeName = "limits"
+	annotationName = "outreach.io/reconcile-limits"
+	limitRangeName = "limits"
 )
 
-// Controller is the controller implementation for Foo resources
+// Controller dynamically injects (and subsequently reconciles) LimitRange resources in each namespace.
 type Controller struct {
 	// kubeclientset is a standard kubernetes clientset
 	kubeclientset kubernetes.Interface
@@ -40,7 +41,7 @@ type Controller struct {
 	workqueue workqueue.RateLimitingInterface
 }
 
-// NewController returns a new sample controller
+// NewController returns a new Controller
 func NewController(kubeclientset kubernetes.Interface, kubeInformerFactory informers.SharedInformerFactory) *Controller {
 
 	// obtain reference to shared index informer
@@ -48,12 +49,13 @@ func NewController(kubeclientset kubernetes.Interface, kubeInformerFactory infor
 	namespaceInformer := kubeInformerFactory.Core().V1().Namespaces()
 
 	controller := &Controller{
-		kubeclientset:     kubeclientset,
+		kubeclientset: kubeclientset,
+		workqueue:     workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "namespaces"),
+
 		limitRangeLister:  limitRangeInformer.Lister(),
 		limitRangesSynced: limitRangeInformer.Informer().HasSynced,
 		namespaceLister:   namespaceInformer.Lister(),
 		namespacesSynced:  namespaceInformer.Informer().HasSynced,
-		workqueue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "namespaces"),
 	}
 
 	glog.Info("Setting up event handlers")
@@ -204,12 +206,12 @@ func (c *Controller) syncHandler(key string) error {
 	}
 
 	annotations := ns.GetAnnotations()
-	reconcile, ok := annotations["outreach.io/reconcile-limits"]
+	reconcile, ok := annotations[annotationName]
 	if !ok || (reconcile != "false") {
-		glog.V(4).Infof("Processing object: %s/%s", ns.GetName(), LimitRangeName)
+		glog.V(4).Infof("Processing object: %s/%s", ns.GetName(), limitRangeName)
 
 		// Check if LimitRange exists
-		_, err = c.limitRangeLister.LimitRanges(ns.Name).Get(LimitRangeName)
+		_, err = c.limitRangeLister.LimitRanges(ns.Name).Get(limitRangeName)
 
 		if errors.IsNotFound(err) { // Create LimitRange
 			_, err = c.kubeclientset.CoreV1().LimitRanges(ns.Name).Create(newLimitRange(ns))
