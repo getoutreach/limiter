@@ -49,13 +49,12 @@ func NewController(kubeclientset kubernetes.Interface, kubeInformerFactory infor
 	namespaceInformer := kubeInformerFactory.Core().V1().Namespaces()
 
 	controller := &Controller{
-		kubeclientset: kubeclientset,
-		workqueue:     workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "namespaces"),
-
+		kubeclientset:     kubeclientset,
 		limitRangeLister:  limitRangeInformer.Lister(),
 		limitRangesSynced: limitRangeInformer.Informer().HasSynced,
 		namespaceLister:   namespaceInformer.Lister(),
 		namespacesSynced:  namespaceInformer.Informer().HasSynced,
+		workqueue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "namespaces"),
 	}
 
 	glog.Info("Setting up event handlers")
@@ -214,9 +213,9 @@ func (c *Controller) syncHandler(key string) error {
 		_, err = c.limitRangeLister.LimitRanges(ns.Name).Get(limitRangeName)
 
 		if errors.IsNotFound(err) { // Create LimitRange
-			_, err = c.kubeclientset.CoreV1().LimitRanges(ns.Name).Create(newLimitRange(ns))
+			_, err = c.kubeclientset.CoreV1().LimitRanges(ns.Name).Create(NewLimitRange(ns))
 		} else if err == nil {
-			_, err = c.kubeclientset.CoreV1().LimitRanges(ns.Name).Update(newLimitRange(ns))
+			_, err = c.kubeclientset.CoreV1().LimitRanges(ns.Name).Update(NewLimitRange(ns))
 		}
 
 		if err != nil {
@@ -269,8 +268,8 @@ func (c *Controller) handleObject(obj interface{}) {
 	c.enqueueNamespace(ns)
 }
 
-// newLimitRange creates a new LimitRange for a Namespace resource.
-func newLimitRange(ns *corev1.Namespace) *corev1.LimitRange {
+// NewLimitRange creates a new LimitRange for a Namespace resource.
+func NewLimitRange(ns *corev1.Namespace) *corev1.LimitRange {
 
 	containerLimits := corev1.LimitRangeItem{
 		Default: corev1.ResourceList{
@@ -285,11 +284,9 @@ func newLimitRange(ns *corev1.Namespace) *corev1.LimitRange {
 		Type: "Container",
 	}
 	podLimits := corev1.LimitRangeItem{
-		Default:        corev1.ResourceList{},
-		DefaultRequest: corev1.ResourceList{},
-		Max:            corev1.ResourceList{},
-		Min:            corev1.ResourceList{},
-		Type:           "Pod",
+		Max:  corev1.ResourceList{},
+		Min:  corev1.ResourceList{},
+		Type: "Pod",
 	}
 
 	if config.container.limit.cpu != "" {
