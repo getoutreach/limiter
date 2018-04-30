@@ -104,9 +104,19 @@
 			"Rev": "05fbef0ca5da472bbf96c9322b84a53edc03c9fd"
 		},
 		{
+			"ImportPath": "github.com/pmezard/go-difflib/difflib",
+			"Comment": "v1.0.0",
+			"Rev": "792786c7400a136282c1664665ae0a8db921c6c2"
+		},
+		{
 			"ImportPath": "github.com/spf13/pflag",
 			"Comment": "v1.0.1",
 			"Rev": "583c0c0531f06d5278b7d917446061adc344b5cd"
+		},
+		{
+			"ImportPath": "github.com/stretchr/testify/assert",
+			"Comment": "v1.2.1-14-gc679ae2",
+			"Rev": "c679ae2cc0cb27ec3293fea7e254e47386f05d69"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/ssh/terminal",
