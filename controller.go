@@ -269,19 +269,61 @@ func (c *Controller) handleObject(obj interface{}) {
 
 // newLimitRange creates a new LimitRange for a Namespace resource.
 func newLimitRange(ns *corev1.Namespace) *corev1.LimitRange {
+
 	containerLimits := corev1.LimitRangeItem{
 		Default: corev1.ResourceList{
-			"memory": resource.MustParse(memLimit),
+			"memory": resource.MustParse(config.container.limit.memory),
 		},
 		DefaultRequest: corev1.ResourceList{
-			"cpu":    resource.MustParse(cpuRequest),
-			"memory": resource.MustParse(memRequest),
+			"cpu":    resource.MustParse(config.container.request.cpu),
+			"memory": resource.MustParse(config.container.request.memory),
 		},
+		Max:  corev1.ResourceList{},
+		Min:  corev1.ResourceList{},
 		Type: "Container",
 	}
+	podLimits := corev1.LimitRangeItem{
+		Default:        corev1.ResourceList{},
+		DefaultRequest: corev1.ResourceList{},
+		Max:            corev1.ResourceList{},
+		Min:            corev1.ResourceList{},
+		Type:           "Pod",
+	}
 
-	if cpuLimit != "" {
-		containerLimits.Default["cpu"] = resource.MustParse(cpuLimit)
+	if config.container.limit.cpu != "" {
+		containerLimits.Default["cpu"] = resource.MustParse(config.container.limit.cpu)
+	}
+
+	if config.container.max.cpu != "" {
+		containerLimits.Max["cpu"] = resource.MustParse(config.container.max.cpu)
+	}
+
+	if config.container.max.memory != "" {
+		containerLimits.Max["memory"] = resource.MustParse(config.container.max.memory)
+	}
+
+	if config.container.min.cpu != "" {
+		containerLimits.Min["cpu"] = resource.MustParse(config.container.min.cpu)
+	}
+
+	if config.container.min.memory != "" {
+		containerLimits.Min["memory"] = resource.MustParse(config.container.min.memory)
+	}
+
+	if config.pod.max.cpu != "" {
+		podLimits.Max["cpu"] = resource.MustParse(config.pod.max.cpu)
+	}
+
+	if config.pod.max.memory != "" {
+		podLimits.Max["memory"] = resource.MustParse(config.pod.max.memory)
+	}
+
+	if config.pod.min.cpu != "" {
+		podLimits.Min["cpu"] = resource.MustParse(config.pod.min.cpu)
+	}
+
+	if config.pod.min.memory != "" {
+		podLimits.Min["memory"] = resource.MustParse(config.pod.min.memory)
 	}
 
 	return &corev1.LimitRange{
@@ -290,7 +332,8 @@ func newLimitRange(ns *corev1.Namespace) *corev1.LimitRange {
 			Namespace: ns.Name,
 		},
 		Spec: corev1.LimitRangeSpec{
-			Limits: []corev1.LimitRangeItem{containerLimits},
+			Limits: []corev1.LimitRangeItem{containerLimits, podLimits},
 		},
 	}
+
 }

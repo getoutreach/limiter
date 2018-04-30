@@ -4,23 +4,35 @@ import (
 	"flag"
 	"time"
 
+	"github.com/getoutreach/limiter/pkg/signals"
 	"github.com/golang/glog"
 	informers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
-
-	"github.com/getoutreach/limiter/pkg/signals"
 )
 
-// TODO: config struct?
+type resourceList struct {
+	cpu    string
+	memory string
+}
+
+type limitRangeItem struct {
+	min     resourceList
+	request resourceList
+	limit   resourceList
+	max     resourceList
+}
+type limitRangeConfig struct {
+	container limitRangeItem
+	pod       limitRangeItem
+}
+
 var (
-	cpuLimit   string
-	cpuRequest string
-	kubeconfig string
-	masterURL  string
-	memLimit   string
-	memRequest string
-	numWorkers int
+	kubeconfig   string
+	masterURL    string
+	config       limitRangeConfig
+	numWorkers   int
+	syncInterval time.Duration
 )
 
 func main() {
@@ -50,11 +62,22 @@ func main() {
 }
 
 func init() {
+	flag.StringVar(&config.container.limit.cpu, "container.limit.cpu", "", "Default container cpu limit.")
+	flag.StringVar(&config.container.limit.memory, "container.limit.memory", "100Mi", "Default container memory limit.")
+	flag.StringVar(&config.container.request.cpu, "container.request.cpu", "10m", "Default container cpu request.")
+	flag.StringVar(&config.container.request.memory, "container.request.memory", "10Mi", "Default container memory request.")
+	flag.StringVar(&config.container.min.cpu, "container.min.cpu", "", "Minimum container cpu request.")
+	flag.StringVar(&config.container.min.memory, "container.min.memory", "", "Minimum container memory request.")
+	flag.StringVar(&config.container.max.cpu, "container.max.cpu", "", "Maximum container cpu limit.")
+	flag.StringVar(&config.container.max.memory, "container.max.memory", "", "Maximum container memory limit.")
+
+	flag.StringVar(&config.pod.min.cpu, "pod.min.cpu", "", "Minimum pod cpu request.")
+	flag.StringVar(&config.pod.min.memory, "pod.min.memory", "", "Minimum pod memory request.")
+	flag.StringVar(&config.pod.max.cpu, "pod.max.cpu", "", "Maximum pod cpu limit.")
+	flag.StringVar(&config.pod.max.memory, "pod.max.memory", "", "Maximum pod memory limit.")
+
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
 	flag.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 	flag.IntVar(&numWorkers, "workers", 2, "The number of worker goroutines to spawn.")
-	flag.StringVar(&cpuLimit, "cpu-limit", "", "Default container CPU limit.")
-	flag.StringVar(&cpuRequest, "cpu-request", "100m", "Default container CPU request.")
-	flag.StringVar(&memLimit, "mem-limit", "100Mi", "Default container memory limit.")
-	flag.StringVar(&memRequest, "mem-request", "100Mi", "Default container memory request.")
+	flag.DurationVar(&syncInterval, "interval", time.Second*30, "Sync Loop Interval")
 }
