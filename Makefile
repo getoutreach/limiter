@@ -1,6 +1,6 @@
 .PHONY: build release
 
-IMAGE  := quay.io/outreach/limiter
+IMAGE  := registry.outreach.cloud/limiter
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 
 build: test
